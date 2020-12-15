@@ -14,8 +14,16 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useFind
 
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String,
+  name: {
+      type: String,
+      minlength: 20,
+      required: true
+  },
+  number:{
+      type: String,
+      minlength: 11,
+      required: true
+  },
   id: Number
 })
 

@@ -30,7 +30,9 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  }else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
 
   next(error)
 }
@@ -88,28 +90,26 @@ const generateID = () => {
 
 console.log("Person Lenght", Person.length);
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const body = request.body;
   if (!body.name || !body.number) {
     return response.status(400).json({
       error: "name or number missing"
     })
   }
-  // Person.find(p => {
-  //   if (p.name === body.name) {
-  //     return response.status(400).json({
-  //       error: `${body.name} is already exist. name must be unique`
-  //     })
-  //   }
-  // })
   
   const person = new Person({
     name: body.name,
     number: body.number
   })
-  person.save().then(savedNote => {
-    response.json(savedNote)
+  person.save()
+  .then(savedNote => {
+    return savedNote.toJSON()
   })
+  .then(savedAndFormattedNote => {
+    response.json(savedAndFormattedNote)
+  }) 
+  .catch(error => next(error))
 
 })
 
