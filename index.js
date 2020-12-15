@@ -3,12 +3,14 @@ const express = require("express")
 const  morgan = require('morgan')
 const cors = require('cors')
 require('dotenv').config()
-const Person = require('./models/person')
+const Person = require('./models/person');
+//const person = require("./models/person");
 
 const app = express();
-app.use(cors())
-app.use(express.static('build'))
 
+app.use(cors())
+
+app.use(express.static('build'))
 //json parser for access the data 
 app.use(express.json())
 
@@ -21,34 +23,25 @@ morgan.token('person', (req, res) => {
 
 app.use(morgan(':method :url :status - :response-time ms :person'))
 
+//************* Error handleling middle ware ***********
 
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
 
-// let persons = [
-//       { 
-//         "name": "Arto Hellas", 
-//         "number": "040-123456",
-//         "id": 1
-//       },
-//       { 
-//         "name": "Ada Lovelace", 
-//         "number": "39-44-5323523",
-//         "id": 2
-//       },
-//       { 
-//         "name": "Dan Abramov", 
-//         "number": "12-43-234345",
-//         "id": 3
-//       },
-//       { 
-//         "name": "Mary Poppendieck", 
-//         "number": "39-23-6423122",
-//         "id": 4
-//       }
-// ]
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+
+app.use(errorHandler)
+
 
 app.get('/', (request, response) => {
     response.send('<h1>Hello phonebook app </h1>')
 })
+
 
 
 app.get('/api/persons', (request, response) => {
@@ -64,30 +57,36 @@ app.get('/info', (request, response) => {
   response.send(`<p>Phonebook has info for ${total} people</p> <p> ${date}</p>`)
 })
 
-app.get('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-  console.log("Id:", id);
-  const person = persons.find(person => person.id == id)
-  console.log("person:", person);
-  if (person) {
-    response.json(person)
-  }else{
-    response.status(400).end()
-  }
+
+app.get('/api/persons/:id', (request, response, next) => {
+  Person.findById(request.params.id).then(note => {
+    if (note) {
+      response.json(note)
+    } else {
+      response.status(404).end()
+    }
+  })
+  .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
 
-  response.status(400).end()
+
+app.delete('/api/persons/:id', (request, response, next) => {
+  Person.findByIdAndRemove(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
 const generateID = () => {
-  const maxId = persons.length > 0 ? Math.max(...persons.map(p => p.id)) : 0;
+  const maxId = Person.length
  
+//0 ? Math.max(...Person.map(p => p.id)) : 0;
   return maxId + 1;
 }
+
+console.log("Person Lenght", Person.length);
 
 app.post('/api/persons', (request, response) => {
   const body = request.body;
@@ -96,22 +95,37 @@ app.post('/api/persons', (request, response) => {
       error: "name or number missing"
     })
   }
-  persons.find(p => {
-    if (p.name === body.name) {
-      return response.status(400).json({
-        error: `${body.name} is already exist. name must be unique`
-      })
-    }
-  })
+  // Person.find(p => {
+  //   if (p.name === body.name) {
+  //     return response.status(400).json({
+  //       error: `${body.name} is already exist. name must be unique`
+  //     })
+  //   }
+  // })
   
+  const person = new Person({
+    name: body.name,
+    number: body.number
+  })
+  person.save().then(savedNote => {
+    response.json(savedNote)
+  })
+
+})
+
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
+
   const person = {
     name: body.name,
-    number: body.number,
-    id : generateID() 
+    number: body.number
   }
 
-  response.json(person)
-
+  Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    .then(updatedNote => {
+      response.json(updatedNote)
+    })
+    .catch(error => next(error))
 })
 
 const PORT = process.env.PORT || 3001

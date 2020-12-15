@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
-MONGOOSE_URL="mongodb+srv://fullstack:Ra123456@cluster0.4d8tu.mongodb.net/phonebook?retryWrites=true&w=majority"
+
 // ****** Mongoose setup ******
-const url = MONGOOSE_URL
+const url = process.env.MONGOOSE_URL
 console.log("Mongo url", url);
 
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true })
