@@ -1,0 +1,6 @@
+npm install mongoose
+npm install cors
+npm install dotenv
+npm install express
+npm install morgan
+npm install --save-dev nodemon
